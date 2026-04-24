@@ -1,0 +1,190 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectX | Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#f8fafc]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const App = () => {
+            // Load from localStorage or use defaults
+            const [tasks, setTasks] = useState(() => {
+                const saved = localStorage.getItem('project_tasks');
+                return saved ? JSON.parse(saved) : [
+                    { id: '1', title: 'Welcome to ProjectX', status: 'To Do', priority: 'Medium', category: 'General' }
+                ];
+            });
+
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [newTask, setNewTask] = useState({ title: '', status: 'To Do', priority: 'Medium', category: 'General' });
+
+            // Save to localStorage whenever tasks change
+            useEffect(() => {
+                localStorage.setItem('project_tasks', JSON.stringify(tasks));
+            }, [tasks]);
+
+            const addTask = (e) => {
+                e.preventDefault();
+                if (!newTask.title) return;
+                setTasks([...tasks, { ...newTask, id: Date.now().toString() }]);
+                setIsModalOpen(false);
+                setNewTask({ title: '', status: 'To Do', priority: 'Medium', category: 'General' });
+            };
+
+            const deleteTask = (id) => {
+                setTasks(tasks.filter(t => t.id !== id));
+            };
+
+            const moveTask = (id, nextStatus) => {
+                setTasks(tasks.map(t => t.id === id ? {...t, status: nextStatus} : t));
+            };
+
+            return (
+                <div className="min-h-screen flex">
+                    {/* Navigation */}
+                    <aside className="w-64 bg-white border-r border-slate-200 p-6 hidden lg:flex flex-col">
+                        <div className="flex items-center gap-3 mb-10">
+                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                            </div>
+                            <span className="font-bold text-xl tracking-tight">ProjectX</span>
+                        </div>
+                        <nav className="space-y-1">
+                            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-700 font-semibold cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                                Dashboard
+                            </div>
+                        </nav>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
+                        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+                            <div>
+                                <h1 className="text-3xl font-extrabold text-slate-900">Workspace</h1>
+                                <p className="text-slate-500 font-medium">Manage your daily operations.</p>
+                            </div>
+                            <button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="bg-indigo-600 text-white px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 font-bold"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                New Task
+                            </button>
+                        </header>
+
+                        {/* Kanban Board */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {['To Do', 'In Progress', 'Done'].map(status => (
+                                <div key={status} className="flex flex-col">
+                                    <div className="flex items-center justify-between mb-5 px-2">
+                                        <h3 className="font-bold text-slate-400 uppercase text-xs tracking-widest flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${status === 'Done' ? 'bg-emerald-400' : status === 'In Progress' ? 'bg-indigo-400' : 'bg-slate-300'}`}></div>
+                                            {status}
+                                        </h3>
+                                        <span className="bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                                            {tasks.filter(t => t.status === status).length}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {tasks.filter(t => t.status === status).map(task => (
+                                            <div key={task.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg uppercase tracking-wider">{task.category}</span>
+                                                    <div className={`text-[10px] font-bold px-2 py-1 rounded-lg ${task.priority === 'High' ? 'text-red-600 bg-red-50' : 'text-amber-600 bg-amber-50'}`}>
+                                                        {task.priority}
+                                                    </div>
+                                                </div>
+                                                <h4 className="font-bold text-slate-800 mb-6 leading-snug">{task.title}</h4>
+                                                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                                                    <button 
+                                                        onClick={() => deleteTask(task.id)}
+                                                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                                    </button>
+                                                    {status !== 'Done' && (
+                                                        <button 
+                                                            onClick={() => moveTask(task.id, status === 'To Do' ? 'In Progress' : 'Done')}
+                                                            className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800"
+                                                        >
+                                                            Move <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    {/* Modal */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+                                <h2 className="text-2xl font-black text-slate-900 mb-6">Create Task</h2>
+                                <form onSubmit={addTask} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Title</label>
+                                        <input 
+                                            autoFocus
+                                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" 
+                                            placeholder="What's the plan?"
+                                            value={newTask.title}
+                                            onChange={e => setNewTask({...newTask, title: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Priority</label>
+                                            <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl appearance-none font-medium text-slate-700" value={newTask.priority} onChange={e => setNewTask({...newTask, priority: e.target.value})}>
+                                                <option>Low</option>
+                                                <option>Medium</option>
+                                                <option>High</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Category</label>
+                                            <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl appearance-none font-medium text-slate-700" value={newTask.category} onChange={e => setNewTask({...newTask, category: e.target.value})}>
+                                                <option>General</option>
+                                                <option>Design</option>
+                                                <option>Dev</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 pt-6">
+                                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 p-4 font-bold text-slate-400 hover:text-slate-600 transition-colors">Cancel</button>
+                                        <button type="submit" className="flex-1 p-4 font-bold bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100">Add Task</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+```
